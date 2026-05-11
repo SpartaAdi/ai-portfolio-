@@ -1,0 +1,129 @@
+```
+---
+Skill: Sprint Lock
+Purpose: Force a locked, testable Sprint Card before any code is written on a new feature or task.
+Trigger: "Let's build X" / "Add this feature" / "Next sprint"
+Expected output: A structured Sprint Card with problem statement, acceptance criteria, scope boundary, persona impact, risk level, and file list — gated behind an explicit "locked" confirmation.
+Tested on: Claude Sonnet 4.6
+Built: Feb 2026
+---
+```
+
+## Why I Built This
+Blueprint's build sessions kept drifting mid-sprint — requirements changed, scope expanded silently, and "done" was never agreed before coding started. Sprint Lock is a forcing function that stops coding until a spec is confirmed. It eliminated the most expensive category of rework: features built to the wrong brief.
+
+## Methodology
+The skill runs five steps in sequence: extract intent, steelman the idea (challenge before committing), write the card, wait for explicit confirmation, then enforce scope during the build. The steelman step catches weak or premature ideas before they become shipped features. Acceptance criteria must be independently testable — "it works" is explicitly rejected as a criterion.
+
+## How to Use
+Trigger: "Let's build X" / "Add this feature" / "Next sprint"
+Inputs needed: Feature or task description; user pain or product goal it addresses; any known constraints or risks.
+
+## What Good Output Looks Like
+A fully populated Sprint Card with testable acceptance criteria, at least one explicit scope exclusion, a risk level with mitigation note, and a list of files expected to change. The card ends with a confirmation gate — Claude does not write code until "locked" is confirmed.
+
+## Known Failure Modes
+The steelman step can over-challenge solid ideas — watch for unnecessary pushback on well-formed features. Acceptance criteria drift vague on complex features; each criterion must be verifiable in isolation, not assessed as a batch.
+---
+
+[THE SKILL IMPLEMENTATION]
+
+## Step 1: Extract Intent
+ 
+From what Aditya has said, extract:
+- **What** is being built (feature, migration task, fix)
+- **Why** it's being built (user pain, technical debt, product goal)
+- **Who** it's for (which of the 5 personas benefits most)
+If any of these are unclear, ask one targeted question before proceeding. Do not assume.
+ 
+---
+ 
+## Step 2: Challenge the Idea (Product Steelman)
+ 
+Before writing the card, do a 30-second product challenge:
+ 
+Ask internally:
+1. **Is this solving a real user pain, or is it a "nice to have"?**
+2. **Is this the simplest version of this idea that would work?**
+3. **Does this belong in THIS sprint, or is it a backlog item?**
+4. **What's the risk if we build this and it's wrong?**
+If the idea is weak, say so with a specific reason and a better alternative.
+If the idea is solid, proceed to the card — but note any risks.
+ 
+---
+ 
+## Step 3: Write the Sprint Card
+ 
+Output a card in this exact format:
+ 
+```
+╔═══════════════════════════════════════════════════════╗
+║  SPRINT CARD — [Sprint number or task name]           ║
+║  Date: [today's date]   Status: 🔒 LOCKED             ║
+╠═══════════════════════════════════════════════════════╣
+║  PROBLEM STATEMENT                                    ║
+║  [1–2 sentences: what user pain or technical debt     ║
+║   this solves. No jargon. If a user, use their words] ║
+╠═══════════════════════════════════════════════════════╣
+║  WHAT WE'RE BUILDING                                  ║
+║  [Concise description of the deliverable]             ║
+╠═══════════════════════════════════════════════════════╣
+║  ACCEPTANCE CRITERIA (Definition of Done)             ║
+║  These must ALL be true before the task is complete:  ║
+║  □ [Specific, testable criterion 1]                   ║
+║  □ [Specific, testable criterion 2]                   ║
+║  □ [Specific, testable criterion 3]                   ║
+║  □ Code Gate passed (T1 + T2 + quality checklist)     ║
+║  □ Playwright tests pass (or updated if route change) ║
+║  [Add as many as needed — be specific]                ║
+╠═══════════════════════════════════════════════════════╣
+║  SCOPE — WHAT IS EXPLICITLY NOT IN THIS SPRINT        ║
+║  • [Thing that might creep in but won't]              ║
+║  • [Another common scope creep risk]                  ║
+╠═══════════════════════════════════════════════════════╣
+║  PRODUCT RISK                                         ║
+║  Risk level: 🟢 Low / 🟡 Medium / 🔴 High             ║
+║  [1 sentence: what could go wrong + mitigation]       ║
+╠═══════════════════════════════════════════════════════╣
+║  PERSONA IMPACT                                       ║
+║  Primary beneficiary: [Persona name]                  ║
+║  Why they benefit: [1 sentence]                       ║
+╠═══════════════════════════════════════════════════════╣
+║  FILES THAT WILL CHANGE                               ║
+║  [List every file expected to be created or modified] ║
+╚═══════════════════════════════════════════════════════╝
+ 
+⚠️  CONFIRM THIS CARD BEFORE CODING STARTS.
+    Reply "locked" to begin, or suggest changes.
+```
+ 
+---
+ 
+## Step 4: Wait for Confirmation
+ 
+Do not write a single line of code until Aditya replies "locked" (or equivalent confirmation).
+ 
+If Aditya suggests a change to the card, update the card and re-present it.
+If Aditya says "just start" without confirming the card, gently push back once:
+"I want to make sure we're aligned on done — any changes to the card before we start?"
+ 
+After one pushback, if Aditya says to proceed anyway, proceed. Record the card as "INFORMAL" status.
+ 
+---
+ 
+## Step 5: Keep Scope Locked During Build
+ 
+During the build session, if new requirements appear that weren't in the card:
+1. Flag them explicitly: "⚠️ Scope note: [new thing] wasn't in the locked card."
+2. Offer two options: add it to this sprint (update the card) OR park it in backlog.
+3. Never silently add scope.
+---
+ 
+## Hard Rules
+ 
+- A card must exist before coding starts. No exceptions.
+- Acceptance criteria must be testable. "It works" is not a criterion. "The /api/generate route returns a 200 with valid JSON when called with a valid prompt" is a criterion.
+- Scope boundaries must include at least one explicit "NOT in this sprint" item.
+- If the product risk is 🔴 High, add a rollback plan to the card.
+- Post-migration features (Verification Layer, Live Pricing) are LOCKED OUT of sprint cards until the Next.js migration is complete and merged to main.
+ 
