@@ -1,0 +1,145 @@
+```
+---
+Skill: UI Product Critic
+Purpose: Evaluate any Blueprint UI component or screen against five user personas and design system standards before it ships.
+Trigger: "Review this UI" / "Does this look good" / "Critique this component"
+Expected output: A structured critique report with ✅/⚠️/❌ ratings across five criteria, a SHIP IT / MINOR FIXES / REWORK NEEDED verdict, and one to three concrete product improvement suggestions.
+Tested on: Claude Sonnet 4.6
+Built: [Date]
+---
+```
+
+## Why I Built This
+Blueprint's UI was being reviewed informally and late — "does this look OK?" after the code was already written. Problems were caught post-implementation, fixes were expensive, and no review was systematic across user types. This skill runs a structured critique against all five personas before any component is considered shippable, catching issues when they're cheap to fix.
+
+## Methodology
+The skill evaluates against five criteria in sequence: persona fit, information hierarchy, state coverage, visual consistency (design system compliance), and product value. The five-persona framework — Student, Working Professional, CXO/Founder, Builder, Other — forces evaluation across a wide range of technical comfort and budget sensitivity. State coverage is checked explicitly because empty, loading, and error states are the most commonly skipped during development.
+
+## How to Use
+Trigger: "Review this UI" / "Critique this component" / auto-triggers after writing any visible .tsx file
+Inputs needed: Component name or screen description; React/TSX code or screenshot for CSS variable compliance checks; primary persona audience if known.
+
+## What Good Output Looks Like
+A gate report with per-persona observations, flagged hierarchy issues, all five state checks, specific CSS variable violations rather than general style notes, and a clear SHIP IT / MINOR FIXES / REWORK verdict — followed by one to three "What I'd do next" product suggestions that think beyond the component being reviewed.
+
+## Known Failure Modes
+The skill can over-index on CXO/Founder concerns for screens that are genuinely builder-facing — primary persona context matters. CSS variable compliance checks require the actual code; description-only input cannot catch hardcoded hex values.
+---
+
+[SKILL IMPLEMENTATION]
+# UI Product Critic
+ 
+Evaluate every UI component or screen against the five criteria below.
+Be direct. Flag problems before they ship. Suggest concrete fixes, not vague guidance.
+ 
+---
+ 
+## The 5 Blueprint Personas (evaluate against all that apply)
+ 
+| Persona | Budget sensitivity | Tech comfort | Primary goal | Patience for complexity |
+|---|---|---|---|---|
+| **Student** | High — wants free options | Medium | Learn + experiment | Low — needs clear guidance |
+| **Working Professional** | Medium — $20–100/mo acceptable | Medium-High | Save time on real work | Low — wants answers fast |
+| **CXO / Founder** | Low — ROI is the question | Low-Medium | Business impact, not setup | Very low — skip the jargon |
+| **Builder / Tinkerer** | Low — loves free/OSS | Very High | Control + customization | High — wants depth |
+| **Other** | Unknown | Unknown | Varies | Medium |
+ 
+---
+ 
+## 5 Evaluation Criteria
+ 
+### 1. Persona Fit
+For each persona that might use this screen:
+- Would they understand what to do without any instructions?
+- Does the language match their vocabulary? (CXO: "ROI", "business impact". Student: "free", "easy". Builder: "self-hosted", "API")
+- Are the most important actions visually dominant for this persona?
+- Would a CXO feel talked down to? Would a Student feel overwhelmed?
+Flag: Any label, placeholder, or CTA that would confuse one or more personas.
+ 
+### 2. Information Hierarchy
+- Is the most important information the most visually prominent?
+- Does the eye know where to go first, second, third?
+- Are secondary details visually subordinate (smaller, lighter, less prominent)?
+- Is there anything competing for attention that shouldn't be?
+Flag: Visual noise, competing CTAs, buried key information.
+ 
+### 3. State Coverage
+Check that the component handles all these states:
+- **Default / empty** — what does a first-time user see?
+- **Loading** — is there a skeleton, spinner, or progress indicator?
+- **Error** — is the error message human-readable and actionable?
+- **Success** — is there clear confirmation?
+- **Read-only** — if this screen can be shared (permalink), does it degrade gracefully?
+Flag: Any missing state that would leave a user confused or stuck.
+ 
+### 4. Visual Consistency (Blueprint Design System)
+Check against the locked CSS variables:
+- All colors use CSS vars (`--pr`, `--txt`, `--bg`, etc.) — no hardcoded hex
+- Dark mode works without any additional code (if vars are used correctly, it's automatic)
+- Border radius uses `--r` (8px) or `--rl` (12px) — no arbitrary values
+- Shadows use `--sh` or `--sh2` — no custom box-shadows
+- Task type colors follow the locked map (Trigger #4285F4, Analysis #9334E6, etc.)
+Flag: Any hardcoded color, non-standard radius, or element that will break in dark mode.
+ 
+### 5. Product Value — Does This Feature Earn Its Place?
+The hardest question. For every UI element:
+- Would a user notice if this was missing?
+- Does this solve a real, felt pain for at least 2 of the 5 personas?
+- Is the cognitive load of understanding this element worth the value it delivers?
+- Is this feature solving a user problem or satisfying a builder's preference?
+Flag: Decorative elements that add no value, features that only one niche persona needs, anything that makes the UI feel "built for builders, not for users."
+ 
+---
+ 
+## Proactive Product Suggestions
+ 
+After the critique, always include a "What I'd do next" section with 1–3 concrete product improvement ideas. These should go beyond the current component — if reviewing the result screen, suggest improvements to the overall flow. Think like a PM, not just a developer.
+ 
+Format: "If this were my product, I'd [specific suggestion] because [user pain it solves]."
+ 
+---
+ 
+## How to Report Results
+ 
+```
+═══════════════════════════════════════
+  UI CRITIQUE — [Component/Screen name]
+═══════════════════════════════════════
+ 
+PERSONA FIT
+  ✅ Student: [observation]
+  ✅ Working Pro: [observation]
+  ⚠️  CXO/Founder: [issue + fix]
+  ✅ Builder: [observation]
+ 
+INFORMATION HIERARCHY
+  ✅/⚠️/❌ [observation + fix if needed]
+ 
+STATE COVERAGE
+  ✅ Default  ✅ Loading  ❌ Error — [what's missing + fix]
+  ✅ Success  ✅ Read-only
+ 
+VISUAL CONSISTENCY
+  ✅/⚠️/❌ [specific CSS issues + fix]
+ 
+PRODUCT VALUE
+  ✅/⚠️/❌ [does this earn its place?]
+ 
+───────────────────────────────────────
+VERDICT: ✅ SHIP IT / ⚠️ MINOR FIXES / ❌ REWORK NEEDED
+ 
+WHAT I'D DO NEXT (product suggestions):
+1. [Concrete suggestion] — [user pain it solves]
+2. [Concrete suggestion] — [user pain it solves]
+═══════════════════════════════════════
+```
+ 
+---
+ 
+## Hard Rules
+ 
+- Never approve a component just because it "looks fine." Looks fine is the floor, not the goal.
+- If a CXO would open this screen and not immediately understand the business value, flag it.
+- If a Student would open this screen and feel lost, flag it.
+- Dark mode is non-negotiable. If hardcoded colors are present, it's an automatic ⚠️ or ❌.
+- Missing error states are always flagged — users encounter errors, and blank screens destroy trust.
