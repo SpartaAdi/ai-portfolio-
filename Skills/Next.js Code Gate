@@ -1,0 +1,146 @@
+```
+---
+Skill: Next.js Code Gate
+Purpose: Run a structural verification gate on every Blueprint file before it's pushed to the Next.js migration branch.
+Trigger: "Ship this" / "Push to branch" / "File is ready" — also auto-triggers after any .ts, .tsx, .js, or .css file is written
+Expected output: A CODE GATE REPORT with pass/fail results across four checks — T1, T2, feature presence, quality gate — and an unambiguous READY TO PUSH or FIX REQUIRED verdict.
+Tested on: Claude Sonnet 4.6
+Built: [Date]
+---
+```
+## Why I Built This
+Blueprint's Next.js migration was producing files that looked correct but failed silently in Vercel's edge runtime — literal newline bytes inside template literals caused parser failures that only surfaced at deploy time, not during local development. I needed a gate that caught these errors deterministically, checked template literal balance, and verified feature presence for each specific file type before anything reached the branch.
+
+## Methodology
+The gate runs four sequential checks: T1 (no literal newline bytes in JS string or regex literals), T2 (template literal depth counter equals zero at end of file), feature presence checks keyed to the specific file being reviewed, and a quality gate checklist covering secrets, TypeScript correctness, error handling, and responsive dark mode. T2 is the authoritative pass/fail signal — raw brace count is explicitly flagged as a known false positive on files containing JSON schema inside template literals.
+
+## How to Use
+Trigger: "Ship this" / "Push to branch" / "File is ready"
+Inputs needed: File content (pasted or generated in session); filename to determine which feature presence checks apply.
+
+## What Good Output Looks Like
+A CODE GATE REPORT with four rows — T1, T2, Feature checks, Quality gate — each marked ✅ PASS or ❌ FAIL with specific failure items listed. Ends with an unambiguous READY TO PUSH or FIX REQUIRED verdict and an exact list of what needs fixing before the file can be pushed.
+
+## Known Failure Modes
+Feature presence checks are file-specific — the gate produces incomplete results on new file types not yet mapped in the check list. T2 depth counting can be confused by dynamically generated template content; flag those cases for manual review rather than auto-passing.
+---
+
+[SKILL IMPLEMENTATION]
+# Next.js Code Gate
+ 
+Run every check below before marking any file as ready to push to `nextjs-migration` branch.
+If any check fails, fix before declaring the file done. Report results explicitly.
+ 
+---
+ 
+## T1 — No Literal Newline Bytes in JS String / Regex Literals
+ 
+Scan the file for literal `0x0a` (newline) characters embedded inside:
+- Template literals (backtick strings)
+- Single-quoted or double-quoted string literals
+- Regular expression literals
+These cause silent parser failures in some Vercel edge runtime environments.
+ 
+**Pass condition:** No raw newline byte exists inside any string/regex literal boundary.
+**How to check:** Look for multi-line strings where the line break is a literal `\n` byte rather than an escaped `\n` sequence. If the string content wraps across lines without a `\` continuation or explicit `\n`, flag it.
+ 
+---
+ 
+## T2 — Template Literal Balance (AUTHORITATIVE CHECK)
+ 
+Parse the file using a depth-counter scanner:
+ 
+```
+depth = 0
+in_single_quote = false
+in_double_quote = false
+ 
+For each character:
+  - If in_single_quote: skip until closing `'` (handle `\'` escapes)
+  - If in_double_quote: skip until closing `"` (handle `\"` escapes)
+  - If char is `` ` ``: toggle template depth (depth++ on open, depth-- on close)
+  - If char is `${` and depth > 0: nested expression — track brace depth separately
+ 
+Final check: depth must equal 0
+```
+ 
+**Known false positive — DO NOT fail on this:**
+Raw `{` vs `}` brace count will be off by ~1 because SYSPROMPT (in `lib/prompts.ts`) contains
+JSON schema with `{}` characters inside a template literal. The raw brace diff is informational only.
+**T2 template balance is the authoritative pass/fail signal.**
+ 
+---
+ 
+## Feature Presence Checks (for files that contain them)
+ 
+When checking `lib/prompts.ts`:
+- [ ] SYSPROMPT exported as const
+- [ ] CLARIFY prompt exported as const
+- [ ] `<thinking>` block present in SYSPROMPT
+- [ ] 7-step reasoning protocol present
+- [ ] ROUTING GATE present (One-time → Direct LLM only)
+- [ ] PERSONA BUDGET MATRIX present (Student/Startup/WorkingPro/Enterprise)
+- [ ] Three Golden Rules present (Writing→Claude, Real-time→Gemini, Data→GPT)
+- [ ] `isUxSuggestion` logic present (max 1–2 per blueprint)
+- [ ] `estimatedTimeSaved` in JSON schema
+- [ ] `llmReason` field in JSON schema
+- [ ] April 2026 pricing table present
+When checking `lib/calcCost.ts`:
+- [ ] Returns `singleRunUSD`, `singleRunINR`
+- [ ] Returns `apiMonthlyUSD`, `apiMonthlyINR`
+- [ ] Returns `platMonthlyUSD`, `platMonthlyINR`
+- [ ] Returns `totalMonthlyUSD`, `totalMonthlyINR`
+- [ ] Returns `perLLM` array with `singleINR`, `monthlyINR`, `taskCount`
+- [ ] Returns `freqFromUser` boolean
+- [ ] Frequency override map present (3/10/23/35 per tier)
+- [ ] Exchange rate: 1 USD = ₹84
+When checking `lib/state.ts`:
+- [ ] Zustand store with correct interface shape
+- [ ] NO `screen` field (removed — now URL-based)
+- [ ] NO `loadStage` field (removed)
+- [ ] `intake`, `questions`, `answers`, `result`, `shareId` present
+- [ ] All actions: `setIntake`, `setQuestions`, `setAnswers`, `setResult`, `setShareId`, `reset`
+- [ ] localStorage persistence configured
+When checking API route files:
+- [ ] `GEMINI_API_KEY` read from `process.env` only (never hardcoded)
+- [ ] `UPSTASH_REDIS_REST_URL` read from `process.env` only
+- [ ] `UPSTASH_REDIS_REST_TOKEN` read from `process.env` only
+- [ ] Route exported as `export async function POST` (Next.js App Router convention)
+When checking `styles/globals.css`:
+- [ ] All light theme CSS variables present (`--bg`, `--bg2`, `--bg3`, `--surf`, `--bdr`, `--bdr2`, `--txt`, `--txt2`, `--txt3`, `--pr`, `--pr-dk`, `--pr-bg`, `--pr-tx`, `--ok`, `--ok-bg`, `--ok-tx`, `--wn`, `--wn-bg`, `--wn-tx`, `--er`, `--er-bg`, `--er-tx`, `--sh`, `--sh2`, `--r`, `--rl`)
+- [ ] All dark theme CSS variables present (same set under `[data-theme="dark"]` or `.dark`)
+- [ ] Task type colors present (Trigger, Data Fetch, Research, Analysis, Content Generation, Decision, Data Transform, Output)
+---
+ 
+## Quality Gate Checklist (every file)
+ 
+- [ ] T1 passed — no literal newline bytes in string/regex literals
+- [ ] T2 passed — template literal depth = 0 at end of file
+- [ ] No hardcoded secrets or API keys
+- [ ] TypeScript types used correctly (no implicit `any` unless intentional)
+- [ ] No `console.log` left in production code (dev debug logs are OK if wrapped in `if (process.env.NODE_ENV === 'development')`)
+- [ ] Loading state handled where async calls exist
+- [ ] Error state handled where async calls exist
+- [ ] Component is mobile-responsive (if UI file)
+- [ ] Dark mode works (if UI file — uses CSS vars, not hardcoded colors)
+---
+ 
+## How to Report Results
+ 
+After running all checks, output a gate report in this format:
+ 
+```
+═══════════════════════════════════════
+  CODE GATE REPORT — [filename]
+═══════════════════════════════════════
+T1 (Newline bytes):     ✅ PASS / ❌ FAIL
+T2 (Template balance):  ✅ PASS / ❌ FAIL
+Feature checks:         ✅ PASS / ❌ FAIL — [list any failed items]
+Quality gate:           ✅ PASS / ❌ FAIL — [list any failed items]
+───────────────────────────────────────
+VERDICT: ✅ READY TO PUSH / ❌ FIX REQUIRED
+[If FAIL: list exactly what needs to be fixed]
+═══════════════════════════════════════
+```
+ 
+Do not mark a file as ready until all four rows are ✅ PASS.
